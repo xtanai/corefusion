@@ -1,27 +1,27 @@
-# Pi5Fusion3D
+# CoreFusion
 
 **Multi‑stereo fusion and calibration engine for precise 3D hand/gesture key‑poses.**
 
-Pi5Fusion3D consumes **ROI/keypoint streams** from multiple **Pi5Track3D** stereo rigs over LAN, performs **time alignment, multi‑view calibration, bundle adjustment, and low‑latency fusion**, and publishes a clean **3D key‑pose stream** to downstream clients such as **MotionCoder**.
+CoreFusion consumes **ROI/keypoint streams** from multiple **EdgeTrack** stereo rigs over LAN, performs **time alignment, multi‑view calibration, bundle adjustment, and low‑latency fusion**, and publishes a clean **3D key‑pose stream** to downstream clients such as **MotionCoder**.
 
 > **Status:** early prototype (WIP). Interfaces may change.
 
 ---
 
-## Why Pi5Fusion3D?
+## Why CoreFusion?
 
 * **Scale:** Combine **2–4 stereo pairs** (4–8 cameras) for robust, occlusion‑resistant tracking.
 * **Precision:** Multi‑view geometry + **AprilTag/wrist/fingertip references** yields stable **Z‑scale** and mm‑level repeatability.
 * **Determinism:** Integrates with **TDMStrobe** phase metadata (A/B/C/D) for cross‑illumination control.
 * **Latency:** Lightweight fusion path (keypoints/ROI only), GPU‑accelerated triangulation & filtering.
-* **Separation of concerns:** Keep capture on the edge (**Pi5Track3D**); do heavy fusion and configuration in one place (this host).
+* **Separation of concerns:** Keep capture on the edge (**EdgeTrack**); do heavy fusion and configuration in one place (this host).
 
 ---
 
 ## System Architecture
 
 ```
-[TDMStrobe] ── TRIG A/B ─► [Pi5Track3D #1..#N] ── LAN ─► [Pi5Fusion3D] ──► MotionCoder / Apps
+[TDMStrobe] ── TRIG A/B ─► [EdgeTrack #1..#N] ── LAN ─► [CoreFusion] ──► MotionCoder / Apps
                                  │                                  │
                              RAW10→ROI,                       3D key‑poses
                         tags/wrist/fingertips                 (joints+conf)
@@ -54,7 +54,7 @@ Pi5Fusion3D consumes **ROI/keypoint streams** from multiple **Pi5Track3D** stere
 
 ## I/O Schemas
 
-### Inbound (from Pi5Track3D)
+### Inbound (from EdgeTrack)
 
 ```json
 {
@@ -115,8 +115,8 @@ Pi5Fusion3D consumes **ROI/keypoint streams** from multiple **Pi5Track3D** stere
 ## Quick Start
 
 1. **Install deps** (`ceres`, `opencv`, `zeromq`, CUDA optional).
-2. Launch **Pi5Track3D** on each rig; verify they publish LAN packets.
-3. Create a **config.yaml** (see below) and run `pi5fusion3d --config config.yaml`.
+2. Launch **EdgeTrack** on each rig; verify they publish LAN packets.
+3. Create a **config.yaml** (see below) and run `CoreFusion --config config.yaml`.
 4. Open the **web UI** to confirm rig clocks, phase usage, and residuals.
 5. Run **calibration** (tag solve + BA). Save the **global extrinsics**.
 6. Start the **Pose stream** → subscribe from **MotionCoder**.
@@ -164,7 +164,7 @@ calibration:
 ## CLI
 
 ```
-pi5fusion3d --config config.yaml \
+CoreFusion --config config.yaml \
             --log-level info \
             --web-ui 0.0.0.0:8080 \
             --record /data/sessions/run_001
@@ -204,4 +204,4 @@ pi5fusion3d --config config.yaml \
 
 ## Safety
 
-Pi5Fusion3D processes data only, but it assumes a capture setup using **NIR illumination**. Follow the project’s **Safety** guidance (IEC 62471, baffling, interlocks). When in doubt, reduce pulse width/duty and shield emitters.
+CoreFusion processes data only, but it assumes a capture setup using **NIR illumination**. Follow the project’s **Safety** guidance (IEC 62471, baffling, interlocks). When in doubt, reduce pulse width/duty and shield emitters.
