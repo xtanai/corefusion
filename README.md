@@ -1,20 +1,23 @@
 # CoreFusion
 
-**Multi‑stereo fusion and calibration engine for precise 3D hand/gesture key‑poses.**
+**Multi-stereo fusion and calibration engine for precise 3D hand and gesture key-poses.**
 
-CoreFusion consumes **ROI/keypoint streams** from multiple **EdgeTrack** stereo rigs over LAN, performs **time alignment, multi‑view calibration, bundle adjustment, and low‑latency fusion**, and publishes a clean **3D key‑pose stream** to downstream clients such as **MotionCoder**.
+CoreFusion consumes **pre-computed 3D keypoints and ROI data** from multiple **EdgeTrack** stereo rigs over LAN.  
+It performs **time alignment, multi-view calibration, bundle adjustment, and low-latency fusion**, and publishes a unified, high-confidence **3D key-pose stream** to downstream clients such as **MotionCoder**.
 
-> **Status:** early prototype (WIP). Interfaces may change.
+> **Status:** early prototype (WIP). Interfaces and schemas may evolve.
 
 ---
 
 ## Why CoreFusion?
 
-* **Scale:** Combine **2–4 stereo pairs** (4–8 cameras) for robust, occlusion‑resistant tracking.
-* **Precision:** Multi‑view geometry + **AprilTag/wrist/fingertip references** yields stable **Z‑scale** and mm‑level repeatability.
-* **Determinism:** Integrates with **TDMStrobe** phase metadata (A/B/C/D) for cross‑illumination control.
-* **Latency:** Lightweight fusion path (keypoints/ROI only), GPU‑accelerated triangulation & filtering.
-* **Separation of concerns:** Keep capture on the edge (**EdgeTrack**); do heavy fusion and configuration in one place (this host).
+* **Scale:** Fuse **2–4 independent stereo rigs** (4–8 cameras) to achieve robust, occlusion-resistant tracking.
+* **Precision:** Edge-side stereo reconstruction combined with **multi-view geometry** and **reference features** (AprilTags, wristbands, fingertips) enables stable **metric Z-scale** and mm-level repeatability.
+* **Determinism:** Supports **TDMStrobe phase metadata (A/B/C/D)** for deterministic cross-illumination and timing consistency.
+* **Low latency:** Fusion operates on **3D keypoints and sparse ROI point clouds only** — no raw video transport required.
+* **Separation of concerns:**  
+  **EdgeTrack** handles capture, synchronization, stereo and pre-processing on the edge;  
+  **CoreFusion** centralizes calibration, fusion, filtering, and system-level configuration.
 
 ---
 
@@ -22,9 +25,9 @@ CoreFusion consumes **ROI/keypoint streams** from multiple **EdgeTrack** stereo 
 
 ```
 [TDMStrobe] ── TRIG A/B ─► [EdgeTrack #1..#N] ── LAN ─► [CoreFusion] ──► MotionCoder / Apps
-                                 │                                  │
-                             RAW10→ROI,                       3D key‑poses
-                        tags/wrist/fingertips                 (joints+conf)
+                                 │                           │
+                     Stereo → 3D keypoints,           Unified 3D key-poses
+                     ROI point clouds, refs           (joints + confidence)
 ```
 
 * **Inputs:** per‑rig streams (keypoints, ROI crops or sparse point clouds, reference features, timestamps, TDM phase IDs).
@@ -61,19 +64,30 @@ CoreFusion consumes **ROI/keypoint streams** from multiple **EdgeTrack** stereo 
   "rig_id": "rig01",
   "frame_id": 1245678,
   "timestamp_ns": 1731400123456789,
-  "phase": "A",                      // TDM phase (A/B/C/D)
-  "keypoints_2d": {
-    "hand": [[x,y,conf], ...],        // normalized or pixel coords
-    "wrist": [x,y,conf],
-    "fingertips": [[x,y,conf], ...]
+  "phase": "A",
+
+  "net": {
+    "transport": "udp",
+    "src_ip": "192.168.1.21",
+    "src_port": 5555,
+    "dst_ip": "192.168.1.10",
+    "dst_port": 5557,
+    "iface": "eth0",
+    "seq": 18342
   },
-  "roi_points3d": [[X,Y,Z,conf], ...], // optional sparse point cloud in rig frame
+
+  "keypoints_3d": {
+    "hand": [[0.1,0.2,0.3,0.98]],
+    "wrist": [0.0,0.0,0.0,0.99],
+    "fingertips": [[0.1,0.2,0.95]]
+  },
+  "roi_points3d": [[0.01,0.02,0.03,0.9]],
   "refs": {
-    "apriltag_corners": [[x,y,id],...],
+    "apriltag_corners": [[123.4, 56.7, 17]],
     "board_id": "LBRACKET_FRONT"
   },
-  "intrinsics": {"fx":..., "fy":..., "cx":..., "cy":..., "k": [...]},
-  "extrinsics": {"R": [...], "t": [...]}
+  "intrinsics": {"fx": 0, "fy": 0, "cx": 0, "cy": 0, "k": []},
+  "extrinsics": {"R": [], "t": []}
 }
 ```
 
@@ -101,9 +115,9 @@ CoreFusion consumes **ROI/keypoint streams** from multiple **EdgeTrack** stereo 
 
 ## Requirements
 
-* **Host OS:** Linux (Ubuntu 22.04+ recommended)
+* **Host OS:** Linux (Ubuntu 22.04+). Windows and macOS planned.
 * **GPU:** NVIDIA CUDA‑capable (e.g., RTX 3060/3080/3090); CPU‑only mode available with reduced throughput
-* **Network:** Gigabit Ethernet (low‑jitter preferred)
+* **Network:** Gigabit Ethernet (up to 4× RJ45 via PCIe/PCI; low-jitter NICs recommended).
 * **Dependencies:**
 
   * Core: C++/Python, **Eigen**, **ceres‑solver** (BA), **OpenCV**, **Sophus**
@@ -180,9 +194,9 @@ CoreFusion --config config.yaml \
 
 ## Performance Notes
 
-* Favor **RAW10→ROI** on the edge to minimize bandwidth.
-* Keep **phase consistency** (TDM A/B/C/D) across rigs to avoid cross‑lit frames.
-* For 120 fps, target an **end‑to‑end latency < 10 ms** (host‑only path) on RTX‑class GPUs.
+* Prefer **edge-side stereo reconstruction** and ROI extraction to minimize bandwidth.
+* Maintain **consistent TDM phases (A/B/C/D)** across rigs to avoid cross-lit frames.
+* For 120 fps pipelines, target **< 10 ms end-to-end latency** (edge → fusion → client) on RTX-class GPUs.
 
 ---
 
