@@ -15,9 +15,12 @@ It performs **time alignment, multi-view calibration, bundle adjustment, and low
 * **Precision:** Edge-side stereo reconstruction combined with **multi-view geometry** and **reference features** (AprilTags, wristbands, fingertips) enables stable **metric Z-scale** and mm-level repeatability.
 * **Determinism:** Supports **TDMStrobe phase metadata (A/B/C/D)** for deterministic cross-illumination and timing consistency.
 * **Low latency:** Fusion operates on **3D keypoints and sparse ROI point clouds only** — no raw video transport required.
+* **AI-assisted geometry:** Optional ML-based refinement improves stability in hard cases (fast motion, partial occlusions) and helps auto-tune geometry-related thresholds.
+* **Interactive UI & tuning:** Built-in UI for live rig status, calibration workflows, and parameter tuning (filters, gating, outlier rules) without recompiling.
+* **Visual inspection:** Optional video/ROI preview and overlay tools to verify alignment, references, and reconstruction quality during setup and debugging.
 * **Separation of concerns:**  
   **EdgeTrack** handles capture, synchronization, stereo and pre-processing on the edge;  
-  **CoreFusion** centralizes calibration, fusion, filtering, and system-level configuration.
+  **CoreFusion** centralizes calibration, fusion, filtering, visualization, and system-level configuration.
 
 ---
 
