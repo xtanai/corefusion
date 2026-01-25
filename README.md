@@ -120,7 +120,7 @@ It performs **time alignment, multi-view calibration, bundle adjustment, and low
 
 * **Host OS:** Linux (Ubuntu 22.04+). Windows and macOS planned.
 * **GPU:** NVIDIA CUDA‑capable (e.g., RTX 3060/3080/3090); CPU‑only mode available with reduced throughput
-* **Network:** Gigabit Ethernet (up to 4× RJ45 via PCIe/PCI; **direct NIC connections recommended**. **Network switches are not recommended** due to added latency and jitter).
+* **Network:** Gigabit Ethernet (up to 4× RJ45 via PCIe/PCI). For deterministic timing, **direct NIC connections are preferred**; **network switches may introduce additional latency and jitter and are therefore discouraged**.
 * **Dependencies:**
 
   * Core: C++/Python, **Eigen**, **ceres‑solver** (BA), **OpenCV**, **Sophus**
